@@ -14,13 +14,7 @@ import {
   CircularProgress,
   Button,
   Grid,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
+  Paper
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import {
@@ -31,15 +25,12 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
-  PieChart,
-  Pie,
-  Cell
+  Legend
 } from 'recharts';
 import { analyticsAPI } from '../utils/api';
 import toast from 'react-hot-toast';
-
-const COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
+import DeviceTypeChart from './DeviceTypeChart';
+import MobileDeviceChart from './MobileDeviceChart';
 
 const PERIOD_OPTIONS = [
   { value: 'today', label: 'Today' },
@@ -48,14 +39,6 @@ const PERIOD_OPTIONS = [
   { value: 'last30days', label: 'Last 30 days' },
   { value: 'last90days', label: 'Last 90 days' }
 ];
-
-const formatPercentage = (value) => {
-  const numeric = typeof value === 'string' ? parseFloat(value) : value;
-  if (!Number.isFinite(numeric)) {
-    return '0.00%';
-  }
-  return `${numeric.toFixed(2)}%`;
-};
 
 const normalizeUrlAnalytics = (rawData) => {
   if (!rawData) {
@@ -88,6 +71,21 @@ const normalizeUrlAnalytics = (rawData) => {
     };
   });
 
+  // Calculate total mobile device visits for percentage
+  const totalMobileVisits = (rawData.mobileDevices || []).reduce((sum, device) => sum + (device.visits ?? 0), 0);
+
+  const mobileDevices = (rawData.mobileDevices || []).map((device) => {
+    const brand = device.brand || device._id || 'Unknown';
+    const visits = device.visits ?? 0;
+    const percentage = totalMobileVisits > 0 ? (visits / totalMobileVisits) * 100 : 0;
+    return {
+      brand,
+      visits,
+      uniqueVisits: device.uniqueVisits ?? 0,
+      percentage
+    };
+  });
+
   const timeline = (rawData.timeline || [])
     .map((entry) => ({
       date: entry.date,
@@ -104,6 +102,7 @@ const normalizeUrlAnalytics = (rawData) => {
     },
     countries,
     devices,
+    mobileDevices,
     timeline
   };
 };
@@ -146,8 +145,8 @@ const UrlAnalyticsDialog = ({ open, url, onClose }) => {
     }
   }, [open]);
 
-  const countryRows = useMemo(() => analytics?.countries || [], [analytics]);
   const deviceData = useMemo(() => analytics?.devices || [], [analytics]);
+  const mobileDeviceData = useMemo(() => analytics?.mobileDevices || [], [analytics]);
   const trendData = useMemo(() => analytics?.timeline || [], [analytics]);
 
   return (
@@ -222,93 +221,16 @@ const UrlAnalyticsDialog = ({ open, url, onClose }) => {
 
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Visits by Device Type
-                </Typography>
-                {deviceData.length === 0 ? (
-                  <Typography variant="body2" color="textSecondary">
-                    No device data available for this period.
-                  </Typography>
-                ) : (
-                  <>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <PieChart>
-                        <Pie
-                          data={deviceData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          dataKey="visits"
-                          label={({ type, percentage }) => `${type}: ${formatPercentage(percentage)}`}
-                        >
-                          {deviceData.map((entry, index) => (
-                            <Cell key={`device-${entry.type}-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => value.toLocaleString()} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <Box mt={2}>
-                      <Table size="small">
-                        <TableBody>
-                          {deviceData.map((device, index) => (
-                            <TableRow key={`device-row-${device.type}-${index}`}>
-                              <TableCell>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <Box
-                                    sx={{
-                                      width: 12,
-                                      height: 12,
-                                      borderRadius: '50%',
-                                      backgroundColor: COLORS[index % COLORS.length]
-                                    }}
-                                  />
-                                  {device.type}
-                                </Box>
-                              </TableCell>
-                              <TableCell align="right">{device.visits}</TableCell>
-                              <TableCell align="right">{formatPercentage(device.percentage)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </Box>
-                  </>
-                )}
+                <DeviceTypeChart deviceData={deviceData} />
               </Paper>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Visits by Country
-                </Typography>
-                {countryRows.length === 0 ? (
-                  <Typography variant="body2" color="textSecondary">
-                    No country data available for this period.
-                  </Typography>
-                ) : (
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Country</TableCell>
-                          <TableCell align="right">Visits</TableCell>
-                          <TableCell align="right">% of visits</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {countryRows.map((country) => (
-                          <TableRow key={`country-row-${country.country}`}>
-                            <TableCell>{country.country}</TableCell>
-                            <TableCell align="right">{country.visits}</TableCell>
-                            <TableCell align="right">{formatPercentage(country.percentage)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
+                <MobileDeviceChart 
+                  mobileDeviceData={mobileDeviceData}
+                  title="Visits by Mobile Device"
+                />
               </Paper>
             </Grid>
 

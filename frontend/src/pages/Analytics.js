@@ -22,9 +22,6 @@ import {
   Bar,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -36,8 +33,9 @@ import { Download } from '@mui/icons-material';
 import { useLocation } from 'react-router-dom';
 import { analyticsAPI } from '../utils/api';
 import toast from 'react-hot-toast';
+import DeviceTypeChart from '../components/DeviceTypeChart';
+import MobileDeviceChart from '../components/MobileDeviceChart';
 
-const COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -414,126 +412,33 @@ const Analytics = () => {
         {/* Device Type Breakdown */}
         {!isUrlScoped && (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Scans by Device Type
-              </Typography>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Device Type</TableCell>
-                      <TableCell align="right">Scans</TableCell>
-                      <TableCell align="right">% of scans</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {analytics.deviceTypes.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} align="center">
-                          <Typography variant="body2" color="textSecondary">
-                            No device type data available for this period.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      analytics.deviceTypes.map((deviceType, index) => (
-                        <TableRow key={`device-type-${deviceType.type}-${index}`}>
-                          <TableCell sx={{ textTransform: 'capitalize' }}>{deviceType.type}</TableCell>
-                          <TableCell align="right">{deviceType.visits}</TableCell>
-                          <TableCell align="right">{formatPercentage(deviceType.percentage)}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              {analytics.deviceTypes.length > 0 && (
-                <Box mt={3}>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={analytics.deviceTypes}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="visits"
-                        nameKey="type"
-                        label={({ type, percentage }) => `${type}: ${formatPercentage(percentage)}`}
-                      >
-                        {analytics.deviceTypes.map((entry, index) => (
-                          <Cell key={`device-type-cell-${entry.type}-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => value.toLocaleString()} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Box>
-              )}
-            </Paper>
+            <DeviceTypeChart 
+              deviceData={analytics.deviceTypes} 
+              title="Visits by Device Type"
+              showAsCard={true}
+            />
+          </Grid>
+        )}
+
+        {/* URL-scoped Device Type */}
+        {isUrlScoped && urlAnalytics?.devices && (
+          <Grid item xs={12} md={6}>
+            <DeviceTypeChart 
+              deviceData={urlAnalytics.devices} 
+              title="Visits by Device Type"
+              showAsCard={true}
+            />
           </Grid>
         )}
 
         {/* Mobile Devices Breakdown */}
         {!isUrlScoped && (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Scans by Mobile Device
-              </Typography>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Device Model</TableCell>
-                      <TableCell align="right">Scans</TableCell>
-                      <TableCell align="right">% of scans</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {analytics.mobileDevices.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} align="center">
-                          <Typography variant="body2" color="textSecondary">
-                            No mobile device data available for this period.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      analytics.mobileDevices.map((device, index) => (
-                        <TableRow key={`mobile-device-${device.brand}-${index}`}>
-                          <TableCell>{device.brand}</TableCell>
-                          <TableCell align="right">{device.visits}</TableCell>
-                          <TableCell align="right">{formatPercentage(device.percentage)}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              {analytics.mobileDevices.length > 0 && (
-                <Box mt={3}>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={analytics.mobileDevices}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="visits"
-                        nameKey="brand"
-                        label={({ brand, percentage }) => `${brand}: ${formatPercentage(percentage)}`}
-                      >
-                        {analytics.mobileDevices.map((entry, index) => (
-                          <Cell key={`mobile-device-cell-${entry.brand}-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => value.toLocaleString()} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Box>
-              )}
-            </Paper>
+            <MobileDeviceChart 
+              mobileDeviceData={analytics.mobileDevices} 
+              title="Visits by Mobile Device"
+              showAsCard={true}
+            />
           </Grid>
         )}
 

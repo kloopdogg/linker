@@ -88,6 +88,7 @@ export interface UrlSpecificAnalytics {
   };
   countries: CountryStat[];
   devices: DeviceStat[];
+  mobileDevices: MobileDeviceStat[];
   timeline: DailyStat[];
 }
 
@@ -667,12 +668,12 @@ class AnalyticsReportService {
           $match: {
             url: { $in: urlIds },
             visitedAt: { $gte: startDate, $lte: endDate },
-            'device.type': 'mobile'
+            'device.type': { $in: ['mobile', 'tablet'] }
           }
         },
         {
           $group: {
-            _id: '$device.brand',
+            _id: { $ifNull: ['$device.brand', 'Unknown'] },
             visits: { $sum: 1 },
             uniqueVisits: { $sum: { $cond: ['$isUniqueVisitor', 1, 0] } }
           }
@@ -848,6 +849,7 @@ class AnalyticsReportService {
       let uniqueVisits = 0;
       const countryMap = new Map<string, { visits: number; uniqueVisits: number }>();
       const deviceMap = new Map<string, { visits: number; uniqueVisits: number }>();
+      const mobileDeviceMap = new Map<string, { visits: number; uniqueVisits: number }>();
       const timelineMap = new Map<string, { visits: number; uniqueVisits: number }>();
 
       // Get historical data from Analytics table
@@ -991,6 +993,33 @@ class AnalyticsReportService {
         }
       }
 
+      // Get mobile device data from Visit table for ENTIRE date range
+      // (Analytics table doesn't store brand info)
+      const mobileDeviceStats = await Visit.aggregate([
+        {
+          $match: {
+            url: new mongoose.Types.ObjectId(urlId),
+            visitedAt: { $gte: startDate, $lte: endDate },
+            'device.type': { $in: ['mobile', 'tablet'] }
+          }
+        },
+        {
+          $group: {
+            _id: { $ifNull: ['$device.brand', 'Unknown'] },
+            visits: { $sum: 1 },
+            uniqueVisits: { $sum: { $cond: ['$isUniqueVisitor', 1, 0] } }
+          }
+        }
+      ]);
+
+      for (const stat of mobileDeviceStats) {
+        const brand = stat._id || 'Unknown';
+        mobileDeviceMap.set(brand, {
+          visits: stat.visits,
+          uniqueVisits: stat.uniqueVisits
+        });
+      }
+
       return {
         url: {
           id: (url as any)._id.toString(),
@@ -1008,6 +1037,9 @@ class AnalyticsReportService {
           .sort((a, b) => b.visits - a.visits),
         devices: Array.from(deviceMap.entries())
           .map(([type, stats]) => ({ type, ...stats }))
+          .sort((a, b) => b.visits - a.visits),
+        mobileDevices: Array.from(mobileDeviceMap.entries())
+          .map(([brand, stats]) => ({ brand, ...stats }))
           .sort((a, b) => b.visits - a.visits),
         timeline: Array.from(timelineMap.entries())
           .map(([dateStr, stats]) => ({
