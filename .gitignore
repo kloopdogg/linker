@@ -143,3 +143,4 @@ frontend/build/
 backend/dist/
 *.env
 .DS_Store
+*-deploy.zip

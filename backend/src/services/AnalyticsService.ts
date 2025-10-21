@@ -55,14 +55,50 @@ class AnalyticsService {
     // If we have OS information but no device vendor, try to infer brand
     if (deviceBrand === 'Unknown' && result.os.name) {
       const osName = result.os.name.toLowerCase();
-      if (osName.includes('ios') || osName.includes('mac')) {
-        deviceBrand = 'Apple';
-      } else if (osName.includes('windows')) {
-        deviceBrand = 'Windows PC';
-      } else if (osName.includes('android')) {
-        deviceBrand = 'Android Device';
-      } else if (osName.includes('linux')) {
+      
+      // iOS devices - distinguish between iPhone and iPad
+      if (osName.includes('ios')) {
+        if (deviceType === 'tablet') {
+          deviceBrand = 'iPad';
+        } else {
+          deviceBrand = 'iPhone';
+        }
+      } 
+      // macOS devices
+      else if (osName.includes('mac')) {
+        deviceBrand = 'Mac';
+      } 
+      // Android devices - use vendor if available, otherwise generic
+      else if (osName.includes('android')) {
+        // ua-parser-js might have detected vendor (Samsung, Huawei, etc.)
+        deviceBrand = result.device.vendor || 'Android';
+      } 
+      // Windows devices
+      else if (osName.includes('windows')) {
+        if (deviceType === 'mobile') {
+          deviceBrand = 'Windows Phone';
+        } else {
+          deviceBrand = 'Windows PC';
+        }
+      } 
+      // Linux devices
+      else if (osName.includes('linux')) {
         deviceBrand = 'Linux PC';
+      }
+    } 
+    // Even if we have a vendor, refine Apple devices
+    else if (deviceBrand && result.os.name) {
+      const osName = result.os.name.toLowerCase();
+      
+      // If detected as Apple but we can be more specific
+      if ((deviceBrand === 'Apple' || deviceBrand.toLowerCase().includes('apple')) && osName.includes('ios')) {
+        if (deviceType === 'tablet') {
+          deviceBrand = 'iPad';
+        } else {
+          deviceBrand = 'iPhone';
+        }
+      } else if ((deviceBrand === 'Apple' || deviceBrand.toLowerCase().includes('apple')) && osName.includes('mac')) {
+        deviceBrand = 'Mac';
       }
     }
     
