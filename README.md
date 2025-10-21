@@ -63,7 +63,7 @@ JWT_SECRET=your-jwt-secret
 AZURE_CLIENT_ID=your-azure-client-id
 AZURE_CLIENT_SECRET=your-azure-client-secret
 AZURE_TENANT_ID=your-azure-tenant-id
-BASE_URL=https://link.uvenu.com
+BASE_URL=https://link.myapp.com
 ```
 
 ## Deployment
